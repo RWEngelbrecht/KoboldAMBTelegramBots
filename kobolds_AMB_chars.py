@@ -1,8 +1,11 @@
-import telebot
-from Kobold import Kobold
+import telebot, os
+from Kobold import *
 from Dice import Dice
+from dotenv import load_dotenv
 
-token = "1428539920:AAFINAejO2y8GzGihZ7VyPLKp7blFkjQUZg"
+load_dotenv()
+
+token = os.getenv("TOKEN")
 
 bot = telebot.TeleBot(token)
 
@@ -32,27 +35,54 @@ def kobold_exists(kobold_name):
     if kobold.name == kobold_name:
       return True
 
-@bot.message_handler(commands=['register'])
-def register_handler(message):
-  try:
-    command, name, brawn, ego, extraneous, reflexes = message.text.split()
-    if kobold_exists(name) == True:
-      raise Exception('')
-    kobolds.insert(0, Kobold(
-      message.from_user.username,
-      name, brawn, ego, extraneous, reflexes))
-    print(f'kobold {name} added')
-    bot.reply_to(message, name+" has joined the horde of King Torg!")
-  except ValueError:
-    bot.reply_to(message, """Tell me about your Kobold, like this:
-    /register koboldName brawn ego extraneous reflexes deathCheckCount(optional)""")
-  except Exception:
-    bot.reply_to(message, name+" is another Kobold's name. Be more creative!")
 
 def find_my_kobold(kobolds, message, kobold_name=""):
   for kobold in kobolds:
     if kobold.player == message.from_user.username:
       return kobold
+
+
+def message_splitter(message):
+  try:
+    pieces = message.split()
+    if len(pieces) == 7:
+      command, name, brawn, ego, extraneous, reflexes, deathcheck_count = pieces
+      parts = {
+        "command": command, "name": name, "brawn": int(brawn),
+        "ego": int(ego), "extraneous": int(extraneous), "reflexes": int(reflexes),
+        "deathcheck_count": int(deathcheck_count)
+      }
+    elif len(pieces) == 6:
+      command, name, brawn, ego, extraneous, reflexes = pieces
+      parts = {
+        "command": command, "name": name, "brawn": int(brawn),
+        "ego": int(ego), "extraneous": int(extraneous), "reflexes": int(reflexes),
+        "deathcheck_count": 0
+      }
+  except ValueError:
+    raise ValueError
+  return parts
+
+
+@bot.message_handler(commands=['register'])
+def register_handler(message):
+  try:
+    parts = message_splitter(message.text)
+    if kobold_exists(parts["name"]) == True:
+      raise NameExists('')
+    kobolds.insert(0, Kobold(
+      message.from_user.username,
+      parts["name"], parts["brawn"],
+      parts["ego"], parts["extraneous"],
+      parts["reflexes"],
+      parts["deathcheck_count"]))
+    bot.reply_to(message, parts["name"]+" has joined the horde of King Torg!")
+  except (UnboundLocalError, ValueError) as e:
+    bot.reply_to(message, """Tell me about your Kobold, like this:
+    /register koboldName brawn ego extraneous reflexes deathCheckCount(optional)""")
+  except NameExists:
+    bot.reply_to(message, "That seems to be another Kobold's name. Be more creative!")
+
 
 @bot.message_handler(commands='deathcheck')
 def deathcheck_handler(message):
@@ -70,10 +100,8 @@ def deathcheck_handler(message):
       bot.reply_to(message, kobold.deathcheck())
     except StopIteration:
       bot.reply_to(message, "Silly Kobold! You need to /register to King Torg's army first...")
-      return
-  except StopIteration:
+  except (StopIteration, UnboundLocalError) as e:
     bot.reply_to(message, "Silly Kobold! You need to /register that specific Kobold to King Torg's army first...")
-    return
 
 
 
