@@ -1,4 +1,4 @@
-from Dice import Dice
+from Classes.Dice import Dice
 
 class NameExists(Exception):
   '''Raised when Kobold's name exists'''
@@ -22,4 +22,3 @@ class Kobold:
     check_str = f'Kobold:\t\t{self.name}\nDeath Check Count:\t{str(self.death_checks_count)}\n{str(rolls[:-1])} + {str(self.death_checks_count)} = {str(total)}'
     if total >= 13: check_str += "\n"+self.name+" died horribly"
     return check_str
-    # print(str(rolls[:-1])+" + "+" = "+str(rolls[-1]))

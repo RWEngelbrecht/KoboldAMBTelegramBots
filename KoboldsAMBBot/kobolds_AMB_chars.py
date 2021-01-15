@@ -1,6 +1,6 @@
 import telebot, os
-from Kobold import *
-from Dice import Dice
+from Classes.Kobold import *
+from Classes.Dice import Dice
 from dotenv import load_dotenv
 
 load_dotenv()
