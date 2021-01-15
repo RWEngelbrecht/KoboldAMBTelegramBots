@@ -22,21 +22,32 @@ def handle_help(message):
   /add_edges <edges> : adds edges to profile
   /add_bogies <bogies> : adds bogies to profile
   /delete_kobold <kobold name> : deletes kobold
+  /slap <Name>: slap someone silly
   """)
 
 kobolds = []
+
+def kobold_exists(kobold_name):
+  for kobold in kobolds:
+    if kobold.name == kobold_name:
+      return True
 
 @bot.message_handler(commands=['register'])
 def register_handler(message):
   try:
     command, name, brawn, ego, extraneous, reflexes = message.text.split()
+    if kobold_exists(name) == True:
+      raise Exception('')
     kobolds.insert(0, Kobold(
       message.from_user.username,
       name, brawn, ego, extraneous, reflexes))
+    print(f'kobold {name} added')
     bot.reply_to(message, name+" has joined the horde of King Torg!")
   except ValueError:
     bot.reply_to(message, """Tell me about your Kobold, like this:
     /register koboldName brawn ego extraneous reflexes deathCheckCount(optional)""")
+  except Exception:
+    bot.reply_to(message, name+" is another Kobold's name. Be more creative!")
 
 def find_my_kobold(kobolds, message, kobold_name=""):
   for kobold in kobolds:
