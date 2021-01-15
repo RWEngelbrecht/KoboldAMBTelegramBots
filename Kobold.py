@@ -1,5 +1,9 @@
 from Dice import Dice
 
+class NameExists(Exception):
+  '''Raised when Kobold's name exists'''
+  pass
+
 class Kobold:
   def __init__(self, player, name, brawn, ego, extraneous, reflexes, death_check_count=0):
     self.player = player
