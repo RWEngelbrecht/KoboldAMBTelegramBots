@@ -1,2 +1,5 @@
 1. integrate mongodb
-2. inline compatability
+2. inline compatability ⩗
+3. ability to add deathchecks at registration
+4. integrate dotenv for token
+5. integrate with @gif bot to send random slap gif with /slap command
