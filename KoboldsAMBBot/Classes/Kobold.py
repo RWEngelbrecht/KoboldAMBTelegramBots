@@ -15,6 +15,17 @@ class Kobold:
     self.death_checks_count = death_check_count
     self.dice = Dice()
 
+  def get_info(self):
+    return {
+      "player": self.player,
+      "name": self.name,
+      "brawn": self.brawn,
+      "ego": self.ego,
+      "extraneous": self.extraneous,
+      "reflexes": self.reflexes,
+      "death_check_count": self.death_checks_count
+    }
+
   def deathcheck(self):
     self.death_checks_count += 1
     rolls = self.dice.roll(2)
