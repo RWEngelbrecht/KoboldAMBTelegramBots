@@ -33,3 +33,11 @@ class Kobold:
     check_str = f'Kobold:\t\t{self.name}\nDeath Check Count:\t{str(self.death_checks_count)}\n{str(rolls[:-1])} + {str(self.death_checks_count)} = {str(total)}'
     if total >= 13: check_str += "\n"+self.name+" died horribly"
     return check_str
+
+  def roll(self, attribute, difficulty):
+    rolls = self.dice.roll(difficulty)
+    answer = f'{attribute.capitalize()}: {getattr(self, attribute.lower())}\nYou rolled: {str(rolls[:-1])}'
+    if rolls[-1] > getattr(self, attribute.lower()):
+      return f'{answer}\nWhich means you FAILED!'
+    else:
+      return f'{answer}\nWhich means you SUCCEEDED!'

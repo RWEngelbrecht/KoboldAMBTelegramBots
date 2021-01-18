@@ -15,26 +15,6 @@ col = db.kobolds
 
 bot = telebot.TeleBot(token)
 
-@bot.message_handler(commands=['start'])
-def handle_start(message):
-  bot.send_message(message.chat.id, "Hey you dirty Kobolds, I'll manage your life for you.")
-
-@bot.message_handler(commands=['help'])
-def handle_help(message):
-  bot.send_message(message.chat.id, """
-  Commands:
-  /help : Guess you know what this does, since you're looking at it.
-  /register <name brawn ego extraneous reflexes [deathcheck count (optional)]>: register new Kobold
-  /load <[kobold name (optional)]> loads your kobold from the databas
-  /roll <attribute> <difficulty>: rolls <difficulty>d6 and compares to your attribute
-  /deathcheck : rolls 2d6 + kobold horrible death record
-  /add_skills <skills> : adds skills to profile
-  /add_edges <edges> : adds edges to profile
-  /add_bogies <bogies> : adds bogies to profile
-  /delete_kobold <kobold name> : deletes kobold
-  /slap <Name>: slap someone silly
-  """)
-
 kobolds = []
 
 def kobold_exists(kobold_name):
@@ -84,7 +64,25 @@ def message_splitter(message):
   return parts
 
 
+@bot.message_handler(commands=['start'])
+def handle_start(message):
+  bot.send_message(message.chat.id, "Hey you dirty Kobolds, I'll manage your life for you.")
 
+@bot.message_handler(commands=['help'])
+def handle_help(message):
+  bot.send_message(message.chat.id, """
+  Commands:
+  /help : Guess you know what this does, since you're looking at it.
+  /register <name brawn ego extraneous reflexes [deathcheck count (optional)]>: register new Kobold
+  /load <[kobold name (optional)]> loads your kobold from the databas
+  /roll <attribute> <difficulty>: rolls <difficulty>d6 and compares to your attribute
+  /deathcheck : rolls 2d6 + kobold horrible death record
+  /add_skills <skills> : adds skills to profile
+  /add_edges <edges> : adds edges to profile
+  /add_bogies <bogies> : adds bogies to profile
+  /delete_kobold <kobold name> : deletes kobold
+  /slap <Name>: slap someone silly
+  """)
 
 @bot.message_handler(commands=['register'])
 def register_handler(message):
@@ -128,6 +126,16 @@ def load_handler(message):
     bot.reply_to(message, "I couldn't find that Kobold!")
 
 
+@bot.message_handler(commands='roll')
+def roll_handler(message):
+  try:
+    command, attribute, difficulty = message.text.split()
+    kobold = next(filter(lambda kobold: find_my_kobold(message.from_user.username), kobolds))
+    bot.reply_to(message, kobold.roll(attribute, int(difficulty)))
+  except ValueError:
+    bot.reply_to(message, "I don't understand! Try again... Maybe read the instructions?")
+
+# TODO: remove character specification, user must use /load to switch characters
 @bot.message_handler(commands='deathcheck')
 def deathcheck_handler(message):
   try:
