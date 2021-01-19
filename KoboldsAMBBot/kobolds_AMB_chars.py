@@ -7,7 +7,6 @@ from Classes.Dice import Dice
 
 load_dotenv()
 
-
 token = os.getenv("TOKEN")
 client = MongoClient(os.getenv("MDB_CON_CTR"))
 db = client.kobold
@@ -68,6 +67,7 @@ def message_splitter(message):
 def handle_start(message):
   bot.send_message(message.chat.id, "Hey you dirty Kobolds, I'll manage your life for you.")
 
+
 @bot.message_handler(commands=['help'])
 def handle_help(message):
   bot.send_message(message.chat.id, """
@@ -77,12 +77,10 @@ def handle_help(message):
   /load <[kobold name (optional)]> loads your kobold from the databas
   /roll <attribute> <difficulty>: rolls <difficulty>d6 and compares to your attribute
   /deathcheck : rolls 2d6 + kobold horrible death record
-  /add_skills <skills> : adds skills to profile
-  /add_edges <edges> : adds edges to profile
-  /add_bogies <bogies> : adds bogies to profile
-  /delete_kobold <kobold name> : deletes kobold
+  /kill <kobold name> : deletes kobold
   /slap <Name>: slap someone silly
   """)
+
 
 @bot.message_handler(commands=['register'])
 def register_handler(message):
@@ -135,6 +133,7 @@ def roll_handler(message):
   except ValueError:
     bot.reply_to(message, "I don't understand! Try again... Maybe read the instructions?")
 
+
 # TODO: remove character specification, user must use /load to switch characters
 @bot.message_handler(commands='deathcheck')
 def deathcheck_handler(message):
@@ -162,6 +161,17 @@ def deathcheck_handler(message):
       bot.reply_to(message, "Silly Kobold! You need to /register to King Torg's army first...")
   except (StopIteration, UnboundLocalError) as e:
     bot.reply_to(message, "Silly Kobold! You need to /register that specific Kobold to King Torg's army first...")
+
+
+@bot.message_handler(commands='kill')
+def delete_handler(message):
+  try:
+    command, kobold = message.text.split()
+    col.delete_one({"player": message.from_user.username, "name": kobold})
+    bot.reply_to(message, f'{kobold} has been violently made to stop living. Its hopes and dreams die with it.')
+  except ValueError:
+    bot.reply_to(message, "You need to tell me who to kill.")
+
 
 
 # @bot.message_handler(commands='slap')
