@@ -3,5 +3,7 @@
 3. ability to add deathchecks at registration ⩗
 4. integrate dotenv for token ⩗
 5. integrate with @gif bot to send random slap gif with /slap command
-6. ability to list my kobolds and switch active kobold
+6. ability to list my kobolds
+6.5 and switch active kobold ⩗
 7. see deathcheck_handler()
+8. delete a kobold ⩗
