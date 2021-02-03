@@ -1,67 +1,16 @@
 import telebot, os
 from dotenv import load_dotenv
-from pymongo import MongoClient
 
+from Classes.Game import *
 from Classes.Kobold import *
 from Classes.Dice import Dice
 
 load_dotenv()
 
 token = os.getenv("TOKEN")
-client = MongoClient(os.getenv("MDB_CON_CTR"))
-db = client.kobold
-col = db.kobolds
-
 bot = telebot.TeleBot(token)
-
-kobolds = []
-
-def kobold_exists(kobold_name):
-  for kobold in kobolds:
-    if kobold.name == kobold_name:
-      return True
-
-
-def find_my_kobold(from_user, kobold_name=""):
-  if len(kobold_name) > 0:
-    for kobold in kobolds:
-      if kobold.player == from_user and kobold.name == kobold_name:
-        return kobold
-  else:
-    for kobold in kobolds:
-      if kobold.player == from_user:
-        return kobold
-
-
-def remove_local_kobold(from_user, kobold_name):
-  del kobolds[kobolds.index(find_my_kobold(from_user, kobold_name))]
-
-
-def save_to_db(kobold):
-  col.insert_one(kobold.get_info())
-
-
-def message_splitter(message):
-  try:
-    pieces = message.split()
-    if len(pieces) == 7:
-      command, name, brawn, ego, extraneous, reflexes, deathcheck_count = pieces
-      parts = {
-        "command": command, "name": name, "brawn": int(brawn),
-        "ego": int(ego), "extraneous": int(extraneous), "reflexes": int(reflexes),
-        "deathcheck_count": int(deathcheck_count)
-      }
-    elif len(pieces) == 6:
-      command, name, brawn, ego, extraneous, reflexes = pieces
-      parts = {
-        "command": command, "name": name, "brawn": int(brawn),
-        "ego": int(ego), "extraneous": int(extraneous), "reflexes": int(reflexes),
-        "deathcheck_count": 0
-      }
-  except ValueError:
-    raise ValueError
-  return parts
-
+game = Game()
+dice = Dice()
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
@@ -85,17 +34,18 @@ def handle_help(message):
 @bot.message_handler(commands=['register'])
 def register_handler(message):
   try:
-    parts = message_splitter(message.text)
-    if kobold_exists(parts["name"]) == True:
+    parts = game.message_splitter(message.text)
+    if game.kobold_exists(parts["name"]) == True:
       raise NameExists('')
     kb = Kobold(
-      message.from_user.username,
+      message.from_user.id,
       parts["name"], parts["brawn"],
       parts["ego"], parts["extraneous"],
       parts["reflexes"],
       parts["deathcheck_count"])
-    kobolds.insert(0, kb)
-    save_to_db(kb)
+    game.add_kobold(kb)
+    print(str(game.get_all_kobolds()))
+    game.save_to_db(kb)
     bot.reply_to(message, parts["name"]+" has joined the horde of King Torg!")
   except (UnboundLocalError, ValueError) as e:
     bot.reply_to(message, """Tell me about your Kobold, like this:
@@ -107,20 +57,22 @@ def register_handler(message):
 @bot.message_handler(commands=['load'])
 def load_handler(message):
   msg = message.text.split()
-  if (len(msg) > 1):
-    loaded_kb = col.find_one({"player": message.from_user.username, "name": msg[1]})
+  if len(msg) > 1:
+    loaded_kb = game.load_kobold(message.from_user.id, msg[1])
   else:
-    loaded_kb = col.find_one({"player": message.from_user.username})
+    loaded_kb = game.load_kobold(message.from_user.id)
   try:
-    if (kobold_exists(loaded_kb['name'])):
-      remove_local_kobold(loaded_kb['player'],loaded_kb['name'])
-    kobolds.insert(0, Kobold(
+    if game.kobold_exists(loaded_kb['name']):
+      print(f'Kobold {loaded_kb["name"]} exists in global var! ')
+      game.remove_local_kobold(loaded_kb['player'],loaded_kb['name'])
+    game.add_kobold(Kobold(
       loaded_kb['player'], loaded_kb['name'],
       loaded_kb['brawn'], loaded_kb['ego'],
       loaded_kb['extraneous'], loaded_kb['reflexes'],
       loaded_kb['death_check_count']))
-    bot.reply_to(message, loaded_kb['name']+" has rejoined the horde of King Torg!")
+    bot.reply_to(message, loaded_kb['name']+f' has rejoined the horde of King Torg!\nBrawn: {loaded_kb["brawn"]}')
   except (ValueError, TypeError) as e:
+    print(e)
     bot.reply_to(message, "I couldn't find that Kobold!")
 
 
@@ -128,10 +80,23 @@ def load_handler(message):
 def roll_handler(message):
   try:
     command, attribute, difficulty = message.text.split()
-    kobold = next(filter(lambda kobold: find_my_kobold(message.from_user.username), kobolds))
-    bot.reply_to(message, kobold.roll(attribute, int(difficulty)))
-  except ValueError:
-    bot.reply_to(message, "I don't understand! Try again... Maybe read the instructions?")
+    # kobold = next(filter(lambda kobold: find_my_kobold(message.from_user.id, kobolds), kobolds))
+    kobold = game.find_my_kobold(message.from_user.id)
+    print(f'roll_handler: kobold == {str(kobold)}')
+    ans = kobold.roll(attribute, int(difficulty))
+    bot.reply_to(message, f'{str(ans)}')
+  except ValueError as e:
+    print(f'roll_handler err: {e}')
+    try:
+      command, difficulty = message.text.split()
+      ans = dice.roll(int(difficulty))
+      bot.reply_to(message, f'You rolled {str(ans[:-1])}\nTotal: {ans[-1]}')
+    except ValueError:
+      bot.reply_to(message, "At least tell me how many times to roll...")
+  except (StopIteration, Exception) as e:
+    bot.reply_to(message, "Something went horribly wrong! Ask your friendly neighbourhood dev about it...")
+    print(str(message.from_user.username)+"said: "+message.text)
+    print(e)
 
 
 # TODO: remove character specification, user must use /load to switch characters
@@ -139,25 +104,16 @@ def roll_handler(message):
 def deathcheck_handler(message):
   try:
     command, character = message.text.split()
-    my_kobolds = filter(lambda kobold: find_my_kobold(message.from_user.username, character), kobolds)
-    for kobo in my_kobolds:
-      if kobo.name == character:
-        kobold = kobo
-        break
+    kobold = game.find_my_kobold(message.from_user.id, character)
     bot.reply_to(message, kobold.deathcheck())
-    col.update_one(
-      {"player": kobold.player, "name": kobold.name},
-      {"$set": {"death_check_count": kobold.death_checks_count}}
-      )
+    game.update_kobold(message.from_user.id, kobold, character)
   except ValueError:
+    print(f'deathcheck: no character specified')
     try:
-      kobold = next(filter(lambda kobold: find_my_kobold(message.from_user.username), kobolds))
+      kobold = game.find_my_kobold(message.from_user.id)
       bot.reply_to(message, kobold.deathcheck())
-      col.update_one(
-        {"player": kobold.player, "name": kobold.name},
-        {"$set": {"death_check_count": kobold.death_checks_count}}
-        )
-    except StopIteration:
+      game.update_kobold(message.from_user.id, kobold)
+    except AttributeError:
       bot.reply_to(message, "Silly Kobold! You need to /register to King Torg's army first...")
   except (StopIteration, UnboundLocalError) as e:
     bot.reply_to(message, "Silly Kobold! You need to /register that specific Kobold to King Torg's army first...")
@@ -167,11 +123,20 @@ def deathcheck_handler(message):
 def delete_handler(message):
   try:
     command, kobold = message.text.split()
-    col.delete_one({"player": message.from_user.username, "name": kobold})
+    game.delete_kobold(message.from_user.id, kobold)
     bot.reply_to(message, f'{kobold} has been violently made to stop living. Its hopes and dreams die with it.')
   except ValueError:
     bot.reply_to(message, "You need to tell me who to kill.")
 
+
+@bot.message_handler(commands='list')
+def list_handler(msg):
+  try:
+    my_kobs = game.get_my_kobolds(msg.from_user.id)
+    bot.reply_to(msg, f'Your kobolds:\n{my_kobs}')
+  except Exception as e:
+    print(e)
+    bot.reply_to(msg, "You have no Kobolds!")
 
 
 # @bot.message_handler(commands='slap')
@@ -179,4 +144,6 @@ def delete_handler(message):
 #   bot.
 #   pass
 
-bot.polling()
+
+
+bot.polling(none_stop=True, timeout=30)

@@ -36,6 +36,7 @@ class Kobold:
 
   def roll(self, attribute, difficulty):
     rolls = self.dice.roll(difficulty)
+    print(f'kobold.roll: {str(rolls)}')
     answer = f'{attribute.capitalize()}: {getattr(self, attribute.lower())}\nYou rolled: {str(rolls[:-1])}'
     if rolls[-1] > getattr(self, attribute.lower()):
       return f'{answer}\nWhich means you FAILED!'

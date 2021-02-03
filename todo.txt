@@ -7,3 +7,5 @@
 6.5 and switch active kobold ⩗
 7. see deathcheck_handler()
 8. delete a kobold ⩗
+9. add remove deathcheck method
+10. fix character having to be loaded all the time
