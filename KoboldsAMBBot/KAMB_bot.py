@@ -1,4 +1,4 @@
-import telebot, os
+import telebot, os, random
 from dotenv import load_dotenv
 
 from Classes.Game import *
@@ -138,6 +138,17 @@ def list_handler(msg):
     print(e)
     bot.reply_to(msg, "You have no Kobolds!")
 
+@bot.message_handler(commands='h4ck3rm4n')
+def h4ck3rm4n_handler(msg):
+  if msg.from_user.id == 1591508124:
+    gif = random.sample(["https://media.tenor.com/images/2f071cab07e5ddac7224f1ff3d8cccf2/tenor.gif","https://media1.tenor.com/images/07988c63e7f4730bd4f5ac57d42440c5/tenor.gif?itemid=11287448","https://media1.tenor.com/images/53b28b7d8f7d0b235d0e1b74f73f0b91/tenor.gif?itemid=13247948","https://media1.tenor.com/images/b23a908ae01021bc1064937bad061b11/tenor.gif?itemid=7953536","https://media1.tenor.com/images/c1c29e5715456f9f24839960399353ad/tenor.gif?itemid=15384188", "https://media1.tenor.com/images/80c1604585f2ea5160e0a7d4a8cd3400/tenor.gif?itemid=12747764"], 1)
+    bot.send_animation(msg.chat.id, gif[0])
+    print("...h4ck3rm4n...")
+
+@bot.message_handler(commands='h4k3rm4n')
+def h4k3rm4n_handler(msg):
+  gif = random.sample(["https://media1.tenor.com/images/3d190af70cfeea404f796f869f46a3c3/tenor.gif?itemid=16730883", "https://media1.tenor.com/images/91b4452a3480ddd7515461d3e4f885b8/tenor.gif?itemid=20163495"], 1)
+  bot.send_animation(msg.chat.id,gif[0])
 
 # @bot.message_handler(commands='slap')
 # def slap_handler(message):
