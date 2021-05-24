@@ -1,7 +1,0 @@
-kambBot API token:
-1428539920:AAFINAejO2y8GzGihZ7VyPLKp7blFkjQUZg
-
-https://api.telegram.org/bot[token here]
-
-mongo
-iDZJf7wunI9jElRx
